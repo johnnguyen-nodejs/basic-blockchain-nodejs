@@ -1,0 +1,23 @@
+{
+  "name": "basic-blockchain-nodejs",
+  "version": "1.0.0",
+  "description": "",
+  "main": "app.js",
+  "scripts": {
+    "start": "node app"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/johnnguyen-nodejs/basic-blockchain-nodejs.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/johnnguyen-nodejs/basic-blockchain-nodejs/issues"
+  },
+  "homepage": "https://github.com/johnnguyen-nodejs/basic-blockchain-nodejs#readme",
+  "dependencies": {
+    "crypto-js": "^4.0.0"
+  }
+}
