@@ -1,10 +1,32 @@
 const SHA256 = require("crypto-js/sha256");
+const EC = require("elliptic").ec;
+const ec = new EC("secp256k1");
 
 class Transaction{
     constructor(from, to, amount){
         this.from = from;
         this.to = to;
         this.amount = amount;
+    }
+    calculateHash(){
+        return SHA256(this.from + this.to + this.amount).toString();
+    }
+    signTransaction(signingKey){
+        if(signingKey.getPublic("hex") !== this.from){
+            throw new Error('You can\'t sign transactions for others wallet');
+        }
+
+        const hashTx = this.calculateHash();
+        const sig = signingKey.sign(hashTx, "base64");
+        this.signature = sig.toDER("hex");
+    }
+    isValid(){
+        if( this.from === null) return true;
+        if(!this.signature || this.signature.length === 0){
+            throw new Error('No signature in this transaction');
+        }
+        const publicKey = ec.keyFromPublic(this.from, "hex");
+        return publicKey.verify(this.calculateHash(), this.signature);
     }
 }
 class Block{
@@ -27,6 +49,12 @@ class Block{
         }
         console.log("Block mine: ", this.hash);
     }
+    hasValidTransactions(){
+        for(const tx of this.transactions){
+            if(!tx.isValid()) return false;
+        }
+        return true;
+    }
 }
 
 class Blockchain{
@@ -34,7 +62,7 @@ class Blockchain{
         this.chain = [this.createGenesisBlock()];
         this.difficulty = 2;
         this.pendingTransactions = [];
-        this.miningReward = 10; 
+        this.miningReward = 100; 
     }
 
     createGenesisBlock(){
@@ -54,7 +82,13 @@ class Blockchain{
             new Transaction(null, miningRewardAddress, this.miningReward)
         ];
     }
-    createTransaction(transaction){
+    addTransaction(transaction){
+        if(!transaction.from || !transaction.to){
+            throw new Error('Transaction must include from and to address');
+        }
+        if(!transaction.isValid()){
+            throw new Error('Can not add invalid transaction to chain');
+        }
         this.pendingTransactions.push(transaction);
     }
 
@@ -77,6 +111,9 @@ class Blockchain{
         for(let i = 1; i < this.chain.length; i++){
             const currentBlock = this.chain[i];
             const previousBlock = this.chain[i-1];
+            if(!currentBlock.hasValidTransactions()){
+                return false;
+            }
             if(currentBlock.hash !== currentBlock.calculateHash()){
                 return false
             }
@@ -88,16 +125,7 @@ class Blockchain{
     }
 }
 
-var basicCoin = new Blockchain();
-
-basicCoin.createTransaction(new Transaction("address1", "address2", 100));
-basicCoin.createTransaction(new Transaction("address2", "address1", 50));
-
-console.log('\n Starting the miner...');
-basicCoin.minePendingTransaction("tuannguyen");
-
-console.log("\n miner balance: ", basicCoin.getBalanceAddress("tuannguyen"));
-console.log('\n Starting the miner again...');
-basicCoin.minePendingTransaction("tuannguyen");
-
-console.log("\n miner balance: ", basicCoin.getBalanceAddress("tuannguyen"));
+module.exports = {
+    Blockchain: Blockchain,
+    Transaction: Transaction
+}
